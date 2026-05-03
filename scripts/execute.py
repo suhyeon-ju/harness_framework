@@ -46,7 +46,7 @@ def progress_indicator(label: str):
         yield info
     finally:
         stop.set()
-        th.join()
+        th.join(timeout=2.0)
         info.elapsed = time.monotonic() - t0
 
 
@@ -78,7 +78,53 @@ class StepExecutor:
         idx = self._read_json(self._index_file)
         self._project = idx.get("project", "project")
         self._phase_name = idx.get("phase", phase_dir_name)
+        self._validate_index(idx)
         self._total = len(idx["steps"])
+
+    def _validate_index(self, idx: dict):
+        """index.json 구조와 step 파일 존재 여부를 시작 전에 검증한다."""
+        VALID_STATUSES = {"pending", "completed", "error", "blocked"}
+
+        if "steps" not in idx or not isinstance(idx["steps"], list):
+            print(f"  ERROR: {self._index_file} 에 'steps' 배열이 없습니다.")
+            sys.exit(1)
+
+        steps = idx["steps"]
+        if not steps:
+            print(f"  ERROR: {self._index_file} 의 steps 배열이 비어 있습니다.")
+            sys.exit(1)
+
+        errors = []
+        seen_nums = set()
+        for i, s in enumerate(steps):
+            for field in ("step", "name", "status"):
+                if field not in s:
+                    errors.append(f"  steps[{i}] 에 '{field}' 필드가 없습니다.")
+
+            num = s.get("step")
+            if num is not None:
+                if num in seen_nums:
+                    errors.append(f"  step 번호 {num} 이 중복됩니다.")
+                seen_nums.add(num)
+
+            status = s.get("status")
+            if status not in VALID_STATUSES:
+                errors.append(f"  steps[{i}] status='{status}' 은 유효하지 않습니다. ({'/'.join(VALID_STATUSES)})")
+
+            step_file = self._phase_dir / f"step{num}.md"
+            if num is not None and s.get("status") != "completed" and not step_file.exists():
+                errors.append(f"  {step_file} 파일이 없습니다.")
+
+        expected = list(range(len(steps)))
+        actual = sorted(seen_nums)
+        if actual != expected:
+            errors.append(f"  step 번호가 {expected} 여야 하지만 {actual} 입니다.")
+
+        if errors:
+            print(f"  ERROR: {self._index_file} 구조 오류:")
+            for e in errors:
+                print(e)
+            sys.exit(1)
 
     def run(self):
         self._print_header()
@@ -98,11 +144,24 @@ class StepExecutor:
 
     @staticmethod
     def _read_json(p: Path) -> dict:
-        return json.loads(p.read_text(encoding="utf-8"))
+        try:
+            return json.loads(p.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            print(f"  ERROR: {p} 파일이 손상되었습니다 (JSON 파싱 실패).")
+            print(f"  상세: {e}")
+            print(f"  Hint: git show HEAD:{p.name} 으로 이전 버전을 확인하세요.")
+            sys.exit(1)
 
     @staticmethod
     def _write_json(p: Path, data: dict):
-        p.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp = p.with_suffix(".tmp")
+        try:
+            tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+            os.replace(tmp, p)
+        except OSError as e:
+            print(f"  ERROR: {p} 저장 실패: {e}")
+            tmp.unlink(missing_ok=True)
+            sys.exit(1)
 
     # --- git ---
 
@@ -119,8 +178,19 @@ class StepExecutor:
             print(f"  {r.stderr.strip()}")
             sys.exit(1)
 
-        if r.stdout.strip() == branch:
+        current = r.stdout.strip()
+        if current == "HEAD":
+            print(f"  ERROR: Detached HEAD 상태입니다.")
+            print(f"  Hint: git checkout main 등으로 브랜치를 먼저 체크아웃하세요.")
+            sys.exit(1)
+
+        if current == branch:
             return
+
+        dirty = self._run_git("status", "--porcelain")
+        if dirty.returncode == 0 and dirty.stdout.strip():
+            print(f"  WARN: 커밋되지 않은 변경사항이 있습니다. checkout 시 변경사항이 유실될 수 있습니다.")
+            print(f"  Hint: git stash 또는 git commit 후 재실행을 권장합니다.")
 
         r = self._run_git("rev-parse", "--verify", branch)
         r = self._run_git("checkout", branch) if r.returncode == 0 else self._run_git("checkout", "-b", branch)
@@ -234,11 +304,28 @@ class StepExecutor:
             print(f"  ERROR: {step_file} not found")
             sys.exit(1)
 
-        prompt = preamble + step_file.read_text()
-        result = subprocess.run(
-            ["claude", "-p", "--dangerously-skip-permissions", "--output-format", "json", prompt],
-            cwd=self._root, capture_output=True, text=True, timeout=1800,
-        )
+        try:
+            prompt = preamble + step_file.read_text(encoding="utf-8")
+        except OSError as e:
+            print(f"  ERROR: {step_file} 읽기 실패: {e}")
+            sys.exit(1)
+
+        try:
+            result = subprocess.run(
+                ["claude", "-p", "--dangerously-skip-permissions", "--output-format", "json", prompt],
+                cwd=self._root, capture_output=True, text=True, timeout=1800,
+            )
+        except subprocess.TimeoutExpired:
+            print(f"\n  ERROR: Step {step_num} — Claude 실행이 1800초를 초과했습니다.")
+            index = self._read_json(self._index_file)
+            for s in index["steps"]:
+                if s["step"] == step_num:
+                    s["status"] = "error"
+                    s["error_message"] = "Claude 실행 타임아웃 (1800s 초과)"
+                    s["failed_at"] = self._stamp()
+            self._write_json(self._index_file, index)
+            self._update_top_index("error")
+            sys.exit(1)
 
         if result.returncode != 0:
             print(f"\n  WARN: Claude가 비정상 종료됨 (code {result.returncode})")
@@ -251,8 +338,12 @@ class StepExecutor:
             "stdout": result.stdout, "stderr": result.stderr,
         }
         out_path = self._phase_dir / f"step{step_num}-output.json"
-        with open(out_path, "w") as f:
-            json.dump(output, f, indent=2, ensure_ascii=False)
+        try:
+            tmp = out_path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
+            os.replace(tmp, out_path)
+        except OSError as e:
+            print(f"  WARN: output.json 저장 실패 ({e}). 실행은 계속합니다.")
 
         return output
 
@@ -362,21 +453,37 @@ class StepExecutor:
         return False  # unreachable
 
     def _execute_all_steps(self, guardrails: str):
-        while True:
-            index = self._read_json(self._index_file)
-            pending = next((s for s in index["steps"] if s["status"] == "pending"), None)
-            if pending is None:
-                print("\n  All steps completed!")
-                return
+        current_step_num: Optional[int] = None
+        try:
+            while True:
+                index = self._read_json(self._index_file)
+                pending = next((s for s in index["steps"] if s["status"] == "pending"), None)
+                if pending is None:
+                    print("\n  All steps completed!")
+                    return
 
-            step_num = pending["step"]
-            for s in index["steps"]:
-                if s["step"] == step_num and "started_at" not in s:
-                    s["started_at"] = self._stamp()
-                    self._write_json(self._index_file, index)
-                    break
+                current_step_num = pending["step"]
+                for s in index["steps"]:
+                    if s["step"] == current_step_num and "started_at" not in s:
+                        s["started_at"] = self._stamp()
+                        self._write_json(self._index_file, index)
+                        break
 
-            self._execute_single_step(pending, guardrails)
+                self._execute_single_step(pending, guardrails)
+        except KeyboardInterrupt:
+            print(f"\n\n  중단됨 (Ctrl+C).")
+            if current_step_num is not None:
+                index = self._read_json(self._index_file)
+                for s in index["steps"]:
+                    if s["step"] == current_step_num and s["status"] == "pending":
+                        s["status"] = "error"
+                        s["error_message"] = "사용자에 의해 중단됨 (Ctrl+C)"
+                        s["failed_at"] = self._stamp()
+                self._write_json(self._index_file, index)
+                print(f"  Step {current_step_num} 상태를 'error'로 기록했습니다.")
+                print(f"  재실행하려면 index.json에서 status를 'pending'으로 변경하세요.")
+            self._update_top_index("error")
+            sys.exit(130)
 
     def _finalize(self):
         index = self._read_json(self._index_file)

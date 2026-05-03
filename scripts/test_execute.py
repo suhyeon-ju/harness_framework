@@ -54,8 +54,8 @@ def phase_dir(tmp_project):
             {"step": 2, "name": "ui", "status": "pending"},
         ],
     }
-    (d / "index.json").write_text(json.dumps(index, indent=2, ensure_ascii=False))
-    (d / "step2.md").write_text("# Step 2: UI\n\nUI를 구현하세요.")
+    (d / "index.json").write_text(json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8")
+    (d / "step2.md").write_text("# Step 2: UI\n\nUI를 구현하세요.", encoding="utf-8")
 
     return d
 
@@ -70,7 +70,7 @@ def top_index(tmp_project):
         ]
     }
     p = tmp_project / "phases" / "index.json"
-    p.write_text(json.dumps(top, indent=2))
+    p.write_text(json.dumps(top, indent=2), encoding="utf-8")
     return p
 
 
@@ -126,14 +126,14 @@ class TestJsonHelpers:
     def test_save_ensures_ascii_false(self, tmp_path):
         p = tmp_path / "test.json"
         ex.StepExecutor._write_json(p, {"한글": "테스트"})
-        raw = p.read_text()
+        raw = p.read_text(encoding="utf-8")
         assert "한글" in raw
         assert "\\u" not in raw
 
     def test_save_indented(self, tmp_path):
         p = tmp_path / "test.json"
         ex.StepExecutor._write_json(p, {"a": 1})
-        raw = p.read_text()
+        raw = p.read_text(encoding="utf-8")
         assert "\n" in raw
 
     def test_load_nonexistent_raises(self, tmp_path):
@@ -187,7 +187,7 @@ class TestLoadGuardrails:
             phases_dir = tmp_path / "phases" / "dummy"
             phases_dir.mkdir(parents=True)
             idx = {"project": "T", "phase": "t", "steps": []}
-            (phases_dir / "index.json").write_text(json.dumps(idx))
+            (phases_dir / "index.json").write_text(json.dumps(idx), encoding="utf-8")
             inst = ex.StepExecutor.__new__(ex.StepExecutor)
             result = inst._load_guardrails()
         assert result == ""
@@ -199,18 +199,18 @@ class TestLoadGuardrails:
 
 class TestBuildStepContext:
     def test_includes_completed_with_summary(self, phase_dir):
-        index = json.loads((phase_dir / "index.json").read_text())
+        index = json.loads((phase_dir / "index.json").read_text(encoding="utf-8"))
         result = ex.StepExecutor._build_step_context(index)
         assert "Step 0 (setup): 프로젝트 초기화 완료" in result
         assert "Step 1 (core): 핵심 로직 구현" in result
 
     def test_excludes_pending(self, phase_dir):
-        index = json.loads((phase_dir / "index.json").read_text())
+        index = json.loads((phase_dir / "index.json").read_text(encoding="utf-8"))
         result = ex.StepExecutor._build_step_context(index)
         assert "ui" not in result
 
     def test_excludes_completed_without_summary(self, phase_dir):
-        index = json.loads((phase_dir / "index.json").read_text())
+        index = json.loads((phase_dir / "index.json").read_text(encoding="utf-8"))
         del index["steps"][0]["summary"]
         result = ex.StepExecutor._build_step_context(index)
         assert "setup" not in result
@@ -222,7 +222,7 @@ class TestBuildStepContext:
         assert result == ""
 
     def test_has_header(self, phase_dir):
-        index = json.loads((phase_dir / "index.json").read_text())
+        index = json.loads((phase_dir / "index.json").read_text(encoding="utf-8"))
         result = ex.StepExecutor._build_step_context(index)
         assert result.startswith("## 이전 Step 산출물")
 
@@ -280,7 +280,7 @@ class TestUpdateTopIndex:
     def test_completed(self, executor, top_index):
         executor._top_index_file = top_index
         executor._update_top_index("completed")
-        data = json.loads(top_index.read_text())
+        data = json.loads(top_index.read_text(encoding="utf-8"))
         mvp = next(p for p in data["phases"] if p["dir"] == "0-mvp")
         assert mvp["status"] == "completed"
         assert "completed_at" in mvp
@@ -288,7 +288,7 @@ class TestUpdateTopIndex:
     def test_error(self, executor, top_index):
         executor._top_index_file = top_index
         executor._update_top_index("error")
-        data = json.loads(top_index.read_text())
+        data = json.loads(top_index.read_text(encoding="utf-8"))
         mvp = next(p for p in data["phases"] if p["dir"] == "0-mvp")
         assert mvp["status"] == "error"
         assert "failed_at" in mvp
@@ -296,7 +296,7 @@ class TestUpdateTopIndex:
     def test_blocked(self, executor, top_index):
         executor._top_index_file = top_index
         executor._update_top_index("blocked")
-        data = json.loads(top_index.read_text())
+        data = json.loads(top_index.read_text(encoding="utf-8"))
         mvp = next(p for p in data["phases"] if p["dir"] == "0-mvp")
         assert mvp["status"] == "blocked"
         assert "blocked_at" in mvp
@@ -304,16 +304,16 @@ class TestUpdateTopIndex:
     def test_other_phases_unchanged(self, executor, top_index):
         executor._top_index_file = top_index
         executor._update_top_index("completed")
-        data = json.loads(top_index.read_text())
+        data = json.loads(top_index.read_text(encoding="utf-8"))
         polish = next(p for p in data["phases"] if p["dir"] == "1-polish")
         assert polish["status"] == "pending"
 
     def test_nonexistent_dir_is_noop(self, executor, top_index):
         executor._top_index_file = top_index
         executor._phase_dir_name = "no-such-dir"
-        original = json.loads(top_index.read_text())
+        original = json.loads(top_index.read_text(encoding="utf-8"))
         executor._update_top_index("completed")
-        after = json.loads(top_index.read_text())
+        after = json.loads(top_index.read_text(encoding="utf-8"))
         for p_before, p_after in zip(original["phases"], after["phases"]):
             assert p_before["status"] == p_after["status"]
 
@@ -345,25 +345,28 @@ class TestCheckoutBranch:
 
     def test_branch_exists_checkout(self, executor):
         self._mock_git(executor, [
-            MagicMock(returncode=0, stdout="main\n", stderr=""),
-            MagicMock(returncode=0, stdout="", stderr=""),
-            MagicMock(returncode=0, stdout="", stderr=""),
+            MagicMock(returncode=0, stdout="main\n", stderr=""),   # HEAD 확인
+            MagicMock(returncode=0, stdout="", stderr=""),          # status --porcelain (clean)
+            MagicMock(returncode=0, stdout="", stderr=""),          # rev-parse --verify (있음)
+            MagicMock(returncode=0, stdout="", stderr=""),          # checkout
         ])
         executor._checkout_branch()
 
     def test_branch_not_exists_create(self, executor):
         self._mock_git(executor, [
-            MagicMock(returncode=0, stdout="main\n", stderr=""),
-            MagicMock(returncode=1, stdout="", stderr="not found"),
-            MagicMock(returncode=0, stdout="", stderr=""),
+            MagicMock(returncode=0, stdout="main\n", stderr=""),   # HEAD 확인
+            MagicMock(returncode=0, stdout="", stderr=""),          # status --porcelain (clean)
+            MagicMock(returncode=1, stdout="", stderr="not found"), # rev-parse --verify (없음)
+            MagicMock(returncode=0, stdout="", stderr=""),          # checkout -b
         ])
         executor._checkout_branch()
 
     def test_checkout_fails_exits(self, executor):
         self._mock_git(executor, [
-            MagicMock(returncode=0, stdout="main\n", stderr=""),
-            MagicMock(returncode=1, stdout="", stderr=""),
-            MagicMock(returncode=1, stdout="", stderr="dirty tree"),
+            MagicMock(returncode=0, stdout="main\n", stderr=""),   # HEAD 확인
+            MagicMock(returncode=0, stdout="", stderr=""),          # status --porcelain (clean)
+            MagicMock(returncode=1, stdout="", stderr=""),          # rev-parse --verify (없음)
+            MagicMock(returncode=1, stdout="", stderr="dirty tree"),# checkout -b 실패
         ])
         with pytest.raises(SystemExit) as exc_info:
             executor._checkout_branch()
@@ -449,7 +452,7 @@ class TestInvokeClaude:
 
         output_file = executor._phase_dir / "step2-output.json"
         assert output_file.exists()
-        data = json.loads(output_file.read_text())
+        data = json.loads(output_file.read_text(encoding="utf-8"))
         assert data["step"] == 2
         assert data["name"] == "ui"
         assert data["exitCode"] == 0
@@ -524,7 +527,7 @@ class TestCheckBlockers:
         d = tmp_project / "phases" / "test-phase"
         d.mkdir(exist_ok=True)
         index = {"project": "T", "phase": "test", "steps": steps}
-        (d / "index.json").write_text(json.dumps(index))
+        (d / "index.json").write_text(json.dumps(index), encoding="utf-8")
 
         with patch.object(ex, "ROOT", tmp_project):
             inst = ex.StepExecutor.__new__(ex.StepExecutor)
@@ -557,3 +560,224 @@ class TestCheckBlockers:
         with pytest.raises(SystemExit) as exc_info:
             inst._check_blockers()
         assert exc_info.value.code == 2
+
+
+# ---------------------------------------------------------------------------
+# _read_json / _write_json 에러 처리
+# ---------------------------------------------------------------------------
+
+class TestJsonErrorHandling:
+    def test_read_json_corrupt_exits(self, tmp_path):
+        p = tmp_path / "bad.json"
+        p.write_text("{ invalid json }", encoding="utf-8")
+        with pytest.raises(SystemExit) as exc_info:
+            ex.StepExecutor._read_json(p)
+        assert exc_info.value.code == 1
+
+    def test_write_json_atomic_no_partial_on_error(self, tmp_path):
+        p = tmp_path / "out.json"
+        with patch("os.replace", side_effect=OSError("disk full")):
+            with pytest.raises(SystemExit) as exc_info:
+                ex.StepExecutor._write_json(p, {"key": "value"})
+        assert exc_info.value.code == 1
+        assert not p.exists()
+
+    def test_write_json_cleans_tmp_on_error(self, tmp_path):
+        p = tmp_path / "out.json"
+        with patch("os.replace", side_effect=OSError("fail")):
+            with pytest.raises(SystemExit):
+                ex.StepExecutor._write_json(p, {"a": 1})
+        assert not (tmp_path / "out.tmp").exists()
+
+
+# ---------------------------------------------------------------------------
+# _validate_index
+# ---------------------------------------------------------------------------
+
+class TestValidateIndex:
+    def _make_phase(self, tmp_project, steps, create_md=True):
+        d = tmp_project / "phases" / "v-phase"
+        d.mkdir(parents=True, exist_ok=True)
+        index = {"project": "T", "phase": "v", "steps": steps}
+        (d / "index.json").write_text(json.dumps(index), encoding="utf-8")
+        if create_md:
+            for s in steps:
+                if s.get("status") != "completed":
+                    (d / f"step{s['step']}.md").write_text(f"# Step {s['step']}")
+        return d, index
+
+    def test_valid_index_passes(self, tmp_project):
+        d, index = self._make_phase(tmp_project, [
+            {"step": 0, "name": "setup", "status": "pending"},
+        ])
+        with patch.object(ex, "ROOT", tmp_project):
+            inst = ex.StepExecutor("v-phase")
+        assert inst._total == 1
+
+    def test_missing_steps_array_exits(self, tmp_project):
+        d = tmp_project / "phases" / "v2"
+        d.mkdir(parents=True)
+        (d / "index.json").write_text(json.dumps({"project": "T", "phase": "v2"}), encoding="utf-8")
+        with patch.object(ex, "ROOT", tmp_project):
+            with pytest.raises(SystemExit) as exc_info:
+                ex.StepExecutor("v2")
+        assert exc_info.value.code == 1
+
+    def test_empty_steps_exits(self, tmp_project):
+        d = tmp_project / "phases" / "v3"
+        d.mkdir(parents=True)
+        (d / "index.json").write_text(json.dumps({"project": "T", "phase": "v3", "steps": []}), encoding="utf-8")
+        with patch.object(ex, "ROOT", tmp_project):
+            with pytest.raises(SystemExit) as exc_info:
+                ex.StepExecutor("v3")
+        assert exc_info.value.code == 1
+
+    def test_invalid_status_exits(self, tmp_project):
+        d, index = self._make_phase(tmp_project, [
+            {"step": 0, "name": "a", "status": "typo"},
+        ])
+        with patch.object(ex, "ROOT", tmp_project):
+            with pytest.raises(SystemExit) as exc_info:
+                ex.StepExecutor("v-phase")
+        assert exc_info.value.code == 1
+
+    def test_nonsequential_step_numbers_exits(self, tmp_project):
+        d = tmp_project / "phases" / "v4"
+        d.mkdir(parents=True)
+        index = {"project": "T", "phase": "v4", "steps": [
+            {"step": 0, "name": "a", "status": "pending"},
+            {"step": 2, "name": "b", "status": "pending"},
+        ]}
+        (d / "index.json").write_text(json.dumps(index), encoding="utf-8")
+        (d / "step0.md").write_text("# 0")
+        (d / "step2.md").write_text("# 2")
+        with patch.object(ex, "ROOT", tmp_project):
+            with pytest.raises(SystemExit) as exc_info:
+                ex.StepExecutor("v4")
+        assert exc_info.value.code == 1
+
+    def test_duplicate_step_numbers_exits(self, tmp_project):
+        d = tmp_project / "phases" / "v5"
+        d.mkdir(parents=True)
+        index = {"project": "T", "phase": "v5", "steps": [
+            {"step": 0, "name": "a", "status": "pending"},
+            {"step": 0, "name": "b", "status": "pending"},
+        ]}
+        (d / "index.json").write_text(json.dumps(index), encoding="utf-8")
+        (d / "step0.md").write_text("# 0")
+        with patch.object(ex, "ROOT", tmp_project):
+            with pytest.raises(SystemExit) as exc_info:
+                ex.StepExecutor("v5")
+        assert exc_info.value.code == 1
+
+    def test_missing_step_md_exits(self, tmp_project):
+        d = tmp_project / "phases" / "v6"
+        d.mkdir(parents=True)
+        index = {"project": "T", "phase": "v6", "steps": [
+            {"step": 0, "name": "a", "status": "pending"},
+        ]}
+        (d / "index.json").write_text(json.dumps(index), encoding="utf-8")
+        # step0.md 없음
+        with patch.object(ex, "ROOT", tmp_project):
+            with pytest.raises(SystemExit) as exc_info:
+                ex.StepExecutor("v6")
+        assert exc_info.value.code == 1
+
+    def test_completed_step_does_not_require_md(self, tmp_project):
+        d = tmp_project / "phases" / "v7"
+        d.mkdir(parents=True)
+        index = {"project": "T", "phase": "v7", "steps": [
+            {"step": 0, "name": "a", "status": "completed", "summary": "done"},
+            {"step": 1, "name": "b", "status": "pending"},
+        ]}
+        (d / "index.json").write_text(json.dumps(index), encoding="utf-8")
+        (d / "step1.md").write_text("# 1")
+        # step0.md 없어도 통과
+        with patch.object(ex, "ROOT", tmp_project):
+            inst = ex.StepExecutor("v7")
+        assert inst._total == 2
+
+
+# ---------------------------------------------------------------------------
+# _checkout_branch — Detached HEAD / dirty 워킹트리
+# ---------------------------------------------------------------------------
+
+class TestCheckoutBranchEdgeCases:
+    def _mock_git(self, executor, responses):
+        call_idx = {"i": 0}
+        def fake_git(*args):
+            idx = call_idx["i"]
+            call_idx["i"] += 1
+            if idx < len(responses):
+                return responses[idx]
+            return MagicMock(returncode=0, stdout="", stderr="")
+        executor._run_git = fake_git
+
+    def test_detached_head_exits(self, executor):
+        self._mock_git(executor, [
+            MagicMock(returncode=0, stdout="HEAD\n", stderr=""),
+        ])
+        with pytest.raises(SystemExit) as exc_info:
+            executor._checkout_branch()
+        assert exc_info.value.code == 1
+
+    def test_dirty_working_tree_warns_but_continues(self, executor, capsys):
+        self._mock_git(executor, [
+            MagicMock(returncode=0, stdout="main\n", stderr=""),
+            MagicMock(returncode=0, stdout=" M some_file.py\n", stderr=""),
+            MagicMock(returncode=1, stdout="", stderr=""),
+            MagicMock(returncode=0, stdout="", stderr=""),
+        ])
+        executor._checkout_branch()
+        captured = capsys.readouterr()
+        assert "WARN" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# _invoke_claude — TimeoutExpired
+# ---------------------------------------------------------------------------
+
+class TestInvokeClaudeEdgeCases:
+    def test_timeout_marks_step_error_and_exits(self, executor):
+        step = {"step": 2, "name": "ui"}
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="claude", timeout=1800)):
+            with pytest.raises(SystemExit) as exc_info:
+                executor._invoke_claude(step, "preamble")
+        assert exc_info.value.code == 1
+        index = json.loads((executor._phase_dir / "index.json").read_text(encoding="utf-8"))
+        step_data = next(s for s in index["steps"] if s["step"] == 2)
+        assert step_data["status"] == "error"
+        assert "타임아웃" in step_data["error_message"]
+
+    def test_output_write_failure_warns_but_returns(self, executor, capsys):
+        mock_result = MagicMock(returncode=0, stdout='{"ok": true}', stderr="")
+        step = {"step": 2, "name": "ui"}
+        with patch("subprocess.run", return_value=mock_result):
+            with patch("os.replace", side_effect=OSError("disk full")):
+                output = executor._invoke_claude(step, "preamble")
+        captured = capsys.readouterr()
+        assert "WARN" in captured.out
+        assert output["step"] == 2
+
+
+# ---------------------------------------------------------------------------
+# _execute_all_steps — KeyboardInterrupt
+# ---------------------------------------------------------------------------
+
+class TestKeyboardInterrupt:
+    def test_ctrl_c_marks_pending_step_as_error(self, executor, tmp_project):
+        index = json.loads((executor._phase_dir / "index.json").read_text(encoding="utf-8"))
+        # step 2는 pending 상태
+        def fake_execute_single(step, guardrails):
+            raise KeyboardInterrupt
+        executor._execute_single_step = fake_execute_single
+        executor._update_top_index = MagicMock()
+
+        with pytest.raises(SystemExit) as exc_info:
+            executor._execute_all_steps("")
+        assert exc_info.value.code == 130
+
+        index = json.loads((executor._phase_dir / "index.json").read_text(encoding="utf-8"))
+        step_data = next(s for s in index["steps"] if s["step"] == 2)
+        assert step_data["status"] == "error"
+        assert "Ctrl+C" in step_data["error_message"]
