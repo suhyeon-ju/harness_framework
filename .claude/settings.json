@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npm run lint 2>&1 && npm run build 2>&1 && npm run test 2>&1"
+            "command": "python -m pytest scripts/test_execute.py -q 2>&1"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE 'rm\\s+-rf|git\\s+push\\s+--force|git\\s+reset\\s+--hard|DROP\\s+TABLE'; then echo 'BLOCKED: 위험한 명령어가 감지되었습니다.' >&2; exit 1; fi"
+            "command": "python -c \"\nimport sys, os, re\ncmd = os.environ.get('CLAUDE_TOOL_INPUT', '')\npatterns = [\n    r'rm\\s+(-rf|-fr|-r\\s+-f|-f\\s+-r|--force)',\n    r'git\\s+push\\s+--force',\n    r'git\\s+push\\s+-f\\b',\n    r'git\\s+reset\\s+--hard',\n    r'git\\s+checkout\\s+--\\s',\n    r'git\\s+clean\\s+.*-f',\n    r'git\\s+reflog\\s+expire',\n    r'DROP\\s+TABLE',\n    r'DROP\\s+DATABASE',\n    r'mkfs',\n    r'dd\\s+if=.*of=',\n    r'chmod\\s+000',\n    r'sudo\\s+rm',\n]\nif any(re.search(p, cmd, re.IGNORECASE) for p in patterns):\n    print('BLOCKED: 위험한 명령어가 감지되었습니다.', file=sys.stderr)\n    sys.exit(1)\n\""
           }
         ]
       }

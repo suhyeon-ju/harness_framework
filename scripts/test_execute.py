@@ -781,3 +781,90 @@ class TestKeyboardInterrupt:
         step_data = next(s for s in index["steps"] if s["step"] == 2)
         assert step_data["status"] == "error"
         assert "Ctrl+C" in step_data["error_message"]
+
+
+# ---------------------------------------------------------------------------
+# __init__ — phases/ 디렉토리 없을 때
+# ---------------------------------------------------------------------------
+
+class TestPhasesDirectoryCheck:
+    def test_no_phases_dir_exits(self, tmp_path):
+        """phases/ 디렉토리 자체가 없으면 exit(1) + Hint 출력."""
+        with patch.object(ex, "ROOT", tmp_path):
+            with pytest.raises(SystemExit) as exc_info:
+                ex.StepExecutor("any-phase")
+        assert exc_info.value.code == 1
+
+    def test_phases_dir_exists_but_phase_missing_exits(self, tmp_project):
+        """phases/ 는 있지만 해당 phase 디렉토리가 없으면 exit(1)."""
+        with patch.object(ex, "ROOT", tmp_project):
+            with pytest.raises(SystemExit) as exc_info:
+                ex.StepExecutor("no-such-phase")
+        assert exc_info.value.code == 1
+
+
+# ---------------------------------------------------------------------------
+# --require-permissions 플래그
+# ---------------------------------------------------------------------------
+
+class TestRequirePermissionsFlag:
+    def test_skip_permissions_true_by_default(self, executor):
+        assert executor._skip_permissions is True
+
+    def test_skip_permissions_false_when_disabled(self, tmp_project, phase_dir):
+        with patch.object(ex, "ROOT", tmp_project):
+            inst = ex.StepExecutor("0-mvp", skip_permissions=False)
+        assert inst._skip_permissions is False
+
+    def test_cmd_includes_flag_when_skip_true(self, executor):
+        mock_result = MagicMock(returncode=0, stdout="{}", stderr="")
+        step = {"step": 2, "name": "ui"}
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            executor._invoke_claude(step, "preamble")
+        cmd = mock_run.call_args[0][0]
+        assert "--dangerously-skip-permissions" in cmd
+
+    def test_cmd_excludes_flag_when_skip_false(self, tmp_project, phase_dir):
+        with patch.object(ex, "ROOT", tmp_project):
+            inst = ex.StepExecutor("0-mvp", skip_permissions=False)
+        inst._root = str(tmp_project)
+        inst._phases_dir = tmp_project / "phases"
+        inst._phase_dir = phase_dir
+        inst._index_file = phase_dir / "index.json"
+
+        mock_result = MagicMock(returncode=0, stdout="{}", stderr="")
+        step = {"step": 2, "name": "ui"}
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            inst._invoke_claude(step, "preamble")
+        cmd = mock_run.call_args[0][0]
+        assert "--dangerously-skip-permissions" not in cmd
+
+
+# ---------------------------------------------------------------------------
+# _execute_all_steps — 모든 step이 이미 완료된 경우
+# ---------------------------------------------------------------------------
+
+class TestAllStepsAlreadyCompleted:
+    def test_prints_hint_when_all_completed(self, tmp_project, capsys):
+        d = tmp_project / "phases" / "done-phase"
+        d.mkdir(parents=True)
+        index = {
+            "project": "T", "phase": "done",
+            "steps": [
+                {"step": 0, "name": "a", "status": "completed", "summary": "done"},
+            ],
+        }
+        (d / "index.json").write_text(json.dumps(index), encoding="utf-8")
+        (d / "step0.md").write_text("# 0", encoding="utf-8")
+
+        with patch.object(ex, "ROOT", tmp_project):
+            inst = ex.StepExecutor("done-phase")
+        inst._root = str(tmp_project)
+        inst._phases_dir = tmp_project / "phases"
+        inst._phase_dir = d
+        inst._index_file = d / "index.json"
+        inst._update_top_index = MagicMock()
+
+        inst._execute_all_steps("")
+        captured = capsys.readouterr()
+        assert "이미 완료" in captured.out or "pending" in captured.out

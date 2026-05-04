@@ -132,8 +132,9 @@ npm test        # 테스트 통과
 ### E. 실행
 
 ```bash
-python3 scripts/execute.py {task-name}        # 순차 실행
-python3 scripts/execute.py {task-name} --push  # 실행 후 push
+python scripts/execute.py {task-name}                       # 순차 실행
+python scripts/execute.py {task-name} --push                # 실행 후 push
+python scripts/execute.py {task-name} --require-permissions # 각 도구 사용마다 확인
 ```
 
 execute.py가 자동으로 처리하는 것:
@@ -149,3 +150,37 @@ execute.py가 자동으로 처리하는 것:
 
 - **error 발생 시**: `phases/{task-name}/index.json`에서 해당 step의 `status`를 `"pending"`으로 바꾸고 `error_message`를 삭제한 뒤 재실행한다.
 - **blocked 발생 시**: `blocked_reason`에 적힌 사유를 해결한 뒤, `status`를 `"pending"`으로 바꾸고 `blocked_reason`을 삭제한 뒤 재실행한다.
+
+---
+
+## 트러블슈팅
+
+### Phase 완전히 취소하기
+1. 브랜치 삭제: `git branch -D feat-{phase-name}`
+2. 최상위 `phases/index.json`에서 해당 phase 항목 제거
+3. 필요하면 디렉토리 삭제: `phases/{phase-name}/`
+
+### Phase 초기화하기 (처음부터 재시작)
+1. 모든 step의 `status`를 `"pending"`으로 변경
+2. `error_message`, `blocked_reason`, 타임스탬프 필드(`started_at`, `completed_at` 등) 제거
+3. `execute.py` 재실행
+
+### 완료된 step 하나만 재실행하기
+1. 해당 step의 `status`를 `"pending"`으로 변경, `summary`·`completed_at` 제거
+2. `execute.py` 재실행 — 해당 step부터 이어서 실행됨
+
+### step을 중간에 추가하고 싶을 때
+이미 실행이 시작된 phase에서는 기존 step 번호를 바꾸지 않는다.
+신규 step은 항상 마지막 번호 뒤에 추가한다.
+
+실행 전이라면:
+1. 삽입할 위치에 번호를 맞추고 이후 step을 모두 +1 번호로 변경
+2. `step{N}.md` 파일명도 함께 변경
+3. `index.json`의 step 번호도 맞춰 수정
+
+### summary 작성 지침
+다음 step의 프롬프트에 자동으로 포함되므로, **다음 step에 유용한 정보**를 담는다:
+- 생성된 파일 경로
+- 중요한 설계 결정 사항
+- 다음 step에서 참고해야 할 인터페이스/타입명
+- 한 줄을 넘지 않도록 간결하게 작성

@@ -3,7 +3,7 @@
 Harness Step Executor — phase 내 step을 순차 실행하고 자가 교정한다.
 
 Usage:
-    python3 scripts/execute.py <phase-dir> [--push]
+    python scripts/execute.py <phase-dir> [--push] [--require-permissions]
 """
 
 import argparse
@@ -58,16 +58,23 @@ class StepExecutor:
     CHORE_MSG = "chore({phase}): step {num} output"
     TZ = timezone(timedelta(hours=9))
 
-    def __init__(self, phase_dir_name: str, *, auto_push: bool = False):
+    def __init__(self, phase_dir_name: str, *, auto_push: bool = False, skip_permissions: bool = True):
         self._root = str(ROOT)
         self._phases_dir = ROOT / "phases"
         self._phase_dir = self._phases_dir / phase_dir_name
         self._phase_dir_name = phase_dir_name
         self._top_index_file = self._phases_dir / "index.json"
         self._auto_push = auto_push
+        self._skip_permissions = skip_permissions
+
+        if not self._phases_dir.exists():
+            print(f"  ERROR: {self._phases_dir} 디렉토리가 없습니다.")
+            print(f"  Hint: Claude Code에서 /harness 를 실행해 Phase/Step 파일을 먼저 생성하세요.")
+            sys.exit(1)
 
         if not self._phase_dir.is_dir():
-            print(f"ERROR: {self._phase_dir} not found")
+            print(f"  ERROR: {self._phase_dir} not found")
+            print(f"  Hint: phases/ 안에 있는 디렉토리 이름을 확인하세요.")
             sys.exit(1)
 
         self._index_file = self._phase_dir / "index.json"
@@ -248,11 +255,11 @@ class StepExecutor:
         sections = []
         claude_md = ROOT / "CLAUDE.md"
         if claude_md.exists():
-            sections.append(f"## 프로젝트 규칙 (CLAUDE.md)\n\n{claude_md.read_text()}")
+            sections.append(f"## 프로젝트 규칙 (CLAUDE.md)\n\n{claude_md.read_text(encoding='utf-8')}")
         docs_dir = ROOT / "docs"
         if docs_dir.is_dir():
             for doc in sorted(docs_dir.glob("*.md")):
-                sections.append(f"## {doc.stem}\n\n{doc.read_text()}")
+                sections.append(f"## {doc.stem}\n\n{doc.read_text(encoding='utf-8')}")
         return "\n\n---\n\n".join(sections) if sections else ""
 
     @staticmethod
@@ -311,8 +318,12 @@ class StepExecutor:
             sys.exit(1)
 
         try:
+            cmd = ["claude", "-p", "--output-format", "json"]
+            if self._skip_permissions:
+                cmd.append("--dangerously-skip-permissions")
+            cmd.append(prompt)
             result = subprocess.run(
-                ["claude", "-p", "--dangerously-skip-permissions", "--output-format", "json", prompt],
+                cmd,
                 cwd=self._root, capture_output=True, text=True, timeout=1800,
             )
         except subprocess.TimeoutExpired:
@@ -459,7 +470,12 @@ class StepExecutor:
                 index = self._read_json(self._index_file)
                 pending = next((s for s in index["steps"] if s["status"] == "pending"), None)
                 if pending is None:
-                    print("\n  All steps completed!")
+                    all_done = all(s["status"] == "completed" for s in index["steps"])
+                    if all_done:
+                        print(f"\n  ℹ 이 Phase의 모든 step이 이미 완료되어 있습니다.")
+                        print(f"  Hint: 재실행하려면 {self._index_file} 에서 원하는 step의 status를 'pending'으로 변경하세요.")
+                    else:
+                        print("\n  All steps completed!")
                     return
 
                 current_step_num = pending["step"]
@@ -515,9 +531,18 @@ def main():
     parser = argparse.ArgumentParser(description="Harness Step Executor")
     parser.add_argument("phase_dir", help="Phase directory name (e.g. 0-mvp)")
     parser.add_argument("--push", action="store_true", help="Push branch after completion")
+    parser.add_argument(
+        "--require-permissions",
+        action="store_true",
+        help="Claude 권한 확인 프롬프트를 활성화한다 (기본: 자동 승인)",
+    )
     args = parser.parse_args()
 
-    StepExecutor(args.phase_dir, auto_push=args.push).run()
+    StepExecutor(
+        args.phase_dir,
+        auto_push=args.push,
+        skip_permissions=not args.require_permissions,
+    ).run()
 
 
 if __name__ == "__main__":
