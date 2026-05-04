@@ -321,10 +321,13 @@ class StepExecutor:
             cmd = ["claude", "-p", "--output-format", "json"]
             if self._skip_permissions:
                 cmd.append("--dangerously-skip-permissions")
-            cmd.append(prompt)
+            # prompt을 stdin으로 전달 — Windows 커맨드 라인 길이 제한(32767자) 우회
             result = subprocess.run(
                 cmd,
+                input=prompt,
                 cwd=self._root, capture_output=True, text=True, timeout=1800,
+                shell=(sys.platform == "win32"),
+                encoding="utf-8",
             )
         except subprocess.TimeoutExpired:
             print(f"\n  ERROR: Step {step_num} — Claude 실행이 1800초를 초과했습니다.")
@@ -528,6 +531,11 @@ class StepExecutor:
 
 
 def main():
+    # Windows에서 콘솔 출력 인코딩을 UTF-8로 강제 설정
+    if sys.platform == "win32":
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(description="Harness Step Executor")
     parser.add_argument("phase_dir", help="Phase directory name (e.g. 0-mvp)")
     parser.add_argument("--push", action="store_true", help="Push branch after completion")

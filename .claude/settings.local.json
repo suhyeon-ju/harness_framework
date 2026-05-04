@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\iopio\\\\Projects\\\\doPost\\\\harness_framework\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "PowerShell(ls -Recurse -Depth 0 \"c:\\\\Users\\\\iopio\\\\Projects\\\\doPost\\\\harness_framework\" | ForEach-Object {$_.Name + \" [\" + $\\(if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}\\) + \"]\"})",
+      "PowerShell(ls \"c:\\\\Users\\\\iopio\\\\Projects\\\\doPost\\\\harness_framework\\\\docs\" 2>$null | ForEach-Object {$_.Name})",
+      "Bash(python scripts/execute.py 1-project-setup)",
+      "Bash(where claude *)",
+      "Bash(claude --version)"
+    ]
+  }
+}
