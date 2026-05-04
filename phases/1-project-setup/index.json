@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-05-04T21:45:12+0900",
       "summary": "lib/supabase.ts(브라우저용 createBrowserClient), lib/supabase-server.ts(서버용 createServerClient+cookies) 생성 완료",
-      "completed_at": "2026-05-04T22:00:00+0900"
+      "completed_at": "2026-05-04T21:46:18+0900"
     },
     {
       "step": 2,
