@@ -14,6 +14,10 @@
       "dir": "3-kakao-auth",
       "status": "completed",
       "completed_at": "2026-05-05T09:56:34+0900"
+    },
+    {
+      "dir": "4-onboarding",
+      "status": "pending"
     }
   ]
 }

@@ -9,7 +9,8 @@
       "Bash(where claude *)",
       "Bash(claude --version)",
       "Bash(python scripts/execute.py 2-landing-ui)",
-      "Bash(python scripts/execute.py 3-kakao-auth)"
+      "Bash(python scripts/execute.py 3-kakao-auth)",
+      "Bash(python scripts/execute.py 4-onboarding)"
     ]
   }
 }
