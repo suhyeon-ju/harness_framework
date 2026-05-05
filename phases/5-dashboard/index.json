@@ -21,10 +21,10 @@
     {
       "step": 2,
       "name": "post-cards",
-      "status": "error",
-      "started_at": "2026-05-05T11:46:32+0900",
-      "error_message": "[3회 시도 후 실패] Step did not update status",
-      "failed_at": "2026-05-05T11:47:16+0900"
+      "status": "completed",
+      "started_at": "2026-05-05T14:27:48+0900",
+      "summary": "components/PostCard.tsx(오늘/다른날 구분, 복사/업로드완료/삭제 버튼, 배지), app/api/posts/[id]/route.ts(PATCH is_uploaded, DELETE, user_id 검증), DashboardClient 로컬 상태 갱신 구현 완료. Phase 5 전체 완료.",
+      "completed_at": "2026-05-05T14:35:00+0900"
     }
   ],
   "created_at": "2026-05-05T11:41:17+0900"
