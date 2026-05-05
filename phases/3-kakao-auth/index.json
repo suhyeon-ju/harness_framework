@@ -7,7 +7,8 @@
       "name": "auth-callback",
       "status": "completed",
       "started_at": "2026-05-05T09:52:38+0900",
-      "summary": "app/auth/callback/route.ts 생성 완료: OAuth 코드 교환, 신규/기존 유저 분기(users 테이블 조회), /onboarding 또는 /dashboard 리디렉트"
+      "summary": "app/auth/callback/route.ts 생성 완료: OAuth 코드 교환, 신규/기존 유저 분기(users 테이블 조회), /onboarding 또는 /dashboard 리디렉트",
+      "completed_at": "2026-05-05T09:54:04+0900"
     },
     {
       "step": 1,
