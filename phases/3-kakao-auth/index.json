@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "kakao-oauth",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-05-05T09:55:06+0900",
+      "summary": "hooks/useAuth.ts(user/loading/signOut), KakaoLoginButton(실제 Kakao OAuth+loading 상태), app/page.tsx(서버사이드 로그인 체크+redirect) 구현 완료. Phase 3 전체 완료.",
+      "completed_at": "2026-05-05T10:05:00+0900"
     }
   ],
   "created_at": "2026-05-05T09:52:38+0900"
