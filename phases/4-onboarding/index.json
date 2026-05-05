@@ -7,7 +7,8 @@
       "name": "onboarding-ui",
       "status": "completed",
       "started_at": "2026-05-05T11:15:40+0900",
-      "summary": "app/onboarding/page.tsx(서버 컴포넌트, 기존 유저 redirect), components/OnboardingFlow.tsx(멀티스텝 UI: 업종 6개+직접입력/말투 5개, 진행 표시) 생성 완료"
+      "summary": "app/onboarding/page.tsx(서버 컴포넌트, 기존 유저 redirect), components/OnboardingFlow.tsx(멀티스텝 UI: 업종 6개+직접입력/말투 5개, 진행 표시) 생성 완료",
+      "completed_at": "2026-05-05T11:17:17+0900"
     },
     {
       "step": 1,
