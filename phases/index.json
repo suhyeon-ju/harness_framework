@@ -9,6 +9,10 @@
       "dir": "2-landing-ui",
       "status": "completed",
       "completed_at": "2026-05-05T09:35:14+0900"
+    },
+    {
+      "dir": "3-kakao-auth",
+      "status": "pending"
     }
   ]
 }
