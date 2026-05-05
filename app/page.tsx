@@ -1,7 +1,13 @@
+import { redirect } from "next/navigation"
 import KakaoLoginButton from "@/components/KakaoLoginButton"
 import PlanTable from "@/components/PlanTable"
+import { createServerClient } from "@/lib/supabase-server"
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) redirect("/dashboard")
+
   return (
     <main>
       <div className="max-w-md mx-auto px-6 py-12">

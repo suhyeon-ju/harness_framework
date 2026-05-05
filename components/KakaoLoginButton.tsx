@@ -1,18 +1,31 @@
 "use client"
 
+import { useState } from "react"
+import { createClient } from "@/lib/supabase"
+
 interface KakaoLoginButtonProps {
   className?: string
 }
 
 export default function KakaoLoginButton({ className }: KakaoLoginButtonProps) {
-  const handleLogin = () => {
-    // TODO: Phase 3 — Kakao OAuth 연동
+  const [loading, setLoading] = useState(false)
+
+  const handleLogin = async () => {
+    setLoading(true)
+    const supabase = createClient()
+    await supabase.auth.signInWithOAuth({
+      provider: "kakao",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
   }
 
   return (
     <button
       onClick={handleLogin}
-      className={`w-full py-3 px-4 bg-[#FEE500] text-[#3C1E1E] rounded-lg flex items-center justify-center gap-2 font-medium ${className ?? ""}`}
+      disabled={loading}
+      className={`w-full py-3 px-4 bg-[#FEE500] text-[#3C1E1E] rounded-lg flex items-center justify-center gap-2 font-medium disabled:opacity-70 ${className ?? ""}`}
     >
       <svg
         width="20"
