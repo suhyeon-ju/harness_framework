@@ -19,6 +19,10 @@
       "dir": "4-onboarding",
       "status": "completed",
       "completed_at": "2026-05-05T11:20:20+0900"
+    },
+    {
+      "dir": "5-dashboard",
+      "status": "pending"
     }
   ]
 }
