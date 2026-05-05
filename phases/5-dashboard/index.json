@@ -1,0 +1,24 @@
+{
+  "project": "doPOST",
+  "phase": "5-dashboard",
+  "steps": [
+    {
+      "step": 0,
+      "name": "bottom-tab-bar",
+      "status": "completed",
+      "started_at": "2026-05-05T11:41:17+0900",
+      "summary": "components/BottomTabBar.tsx(4탭 fixed 하단바, usePathname 활성탭 강조), app/dashboard/layout.tsx(pb-20 여백 포함) 생성 완료"
+    },
+    {
+      "step": 1,
+      "name": "dashboard-shell",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "post-cards",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-05-05T11:41:17+0900"
+}
