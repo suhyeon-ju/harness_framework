@@ -7,7 +7,8 @@
       "PowerShell(ls \"c:\\\\Users\\\\iopio\\\\Projects\\\\doPost\\\\harness_framework\\\\docs\" 2>$null | ForEach-Object {$_.Name})",
       "Bash(python scripts/execute.py 1-project-setup)",
       "Bash(where claude *)",
-      "Bash(claude --version)"
+      "Bash(claude --version)",
+      "Bash(python scripts/execute.py 2-landing-ui)"
     ]
   }
 }

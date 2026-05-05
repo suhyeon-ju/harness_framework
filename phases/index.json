@@ -4,6 +4,10 @@
       "dir": "1-project-setup",
       "status": "completed",
       "completed_at": "2026-05-05T09:02:48+0900"
+    },
+    {
+      "dir": "2-landing-ui",
+      "status": "pending"
     }
   ]
 }
