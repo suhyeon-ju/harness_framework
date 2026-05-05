@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "auth-middleware",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-05-05T09:54:05+0900",
+      "summary": "middleware.ts 생성 완료: Supabase 세션 갱신, /dashboard·/generate·/history·/settings·/onboarding 보호 라우트 설정, 비로그인 시 / 리디렉트",
+      "completed_at": "2026-05-05T10:00:00+0900"
     },
     {
       "step": 2,
