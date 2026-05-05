@@ -7,7 +7,8 @@
       "name": "bottom-tab-bar",
       "status": "completed",
       "started_at": "2026-05-05T11:41:17+0900",
-      "summary": "components/BottomTabBar.tsx(4탭 fixed 하단바, usePathname 활성탭 강조), app/dashboard/layout.tsx(pb-20 여백 포함) 생성 완료"
+      "summary": "components/BottomTabBar.tsx(4탭 fixed 하단바, usePathname 활성탭 강조), app/dashboard/layout.tsx(pb-20 여백 포함) 생성 완료",
+      "completed_at": "2026-05-05T11:42:43+0900"
     },
     {
       "step": 1,
