@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-05-05T11:42:44+0900",
       "summary": "app/dashboard/page.tsx(유저+이번주 posts 페칭, redirect 처리), DashboardClient.tsx(선택날짜 상태, 헤더 업종명+남은횟수), WeekTab.tsx(7탭, 오늘강조, 미업로드/완료 점 구분) 생성 완료",
-      "completed_at": "2026-05-05T11:50:00+0900"
+      "completed_at": "2026-05-05T11:46:31+0900"
     },
     {
       "step": 2,
