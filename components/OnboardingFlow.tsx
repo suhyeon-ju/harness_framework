@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Industry, Tone } from "@/types"
 
 const INDUSTRY_OPTIONS: { value: Industry; label: string }[] = [
@@ -24,9 +25,34 @@ export default function OnboardingFlow() {
   const [selectedIndustry, setSelectedIndustry] = useState<Industry | null>(null)
   const [customIndustry, setCustomIndustry] = useState("")
   const [selectedTone, setSelectedTone] = useState<Tone | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   const isNextEnabled = selectedIndustry !== null && (selectedIndustry !== "custom" || customIndustry.trim() !== "")
   const isCompleteEnabled = selectedTone !== null
+
+  const handleSubmit = async () => {
+    if (!selectedIndustry || !selectedTone) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          industry: selectedIndustry === 'custom' ? customIndustry.trim() : selectedIndustry,
+          tone: selectedTone,
+        }),
+      })
+      if (!res.ok) throw new Error('온보딩 저장 실패')
+      router.push('/dashboard')
+    } catch {
+      setError('저장 중 오류가 발생했어요. 다시 시도해주세요.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="max-w-md mx-auto px-4 py-8">
@@ -100,16 +126,15 @@ export default function OnboardingFlow() {
             ))}
           </div>
           <button
-            onClick={() => {
-              // TODO: Step 1 — onboarding-submit
-            }}
-            disabled={!isCompleteEnabled}
+            onClick={handleSubmit}
+            disabled={!isCompleteEnabled || loading}
             className={`mt-8 rounded-lg bg-orange-500 text-white py-3 w-full font-medium transition-colors ${
-              isCompleteEnabled ? "hover:bg-orange-600" : "opacity-50 cursor-not-allowed"
+              isCompleteEnabled && !loading ? "hover:bg-orange-600" : "opacity-50 cursor-not-allowed"
             }`}
           >
-            완료
+            {loading ? "저장 중..." : "완료"}
           </button>
+          {error && <p className="mt-2 text-red-500 text-sm text-center">{error}</p>}
           <button
             onClick={() => setStep(1)}
             className="mt-3 w-full py-2 text-gray-500 text-sm"
