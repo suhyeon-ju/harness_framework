@@ -7,7 +7,8 @@
       "name": "landing-hero",
       "status": "completed",
       "started_at": "2026-05-05T09:32:17+0900",
-      "summary": "app/page.tsx(Hero 섹션: 서비스명/캐치프레이즈/설명), components/KakaoLoginButton.tsx(카카오 브랜드 UI, onClick placeholder) 생성 완료"
+      "summary": "app/page.tsx(Hero 섹션: 서비스명/캐치프레이즈/설명), components/KakaoLoginButton.tsx(카카오 브랜드 UI, onClick placeholder) 생성 완료",
+      "completed_at": "2026-05-05T09:34:06+0900"
     },
     {
       "step": 1,
