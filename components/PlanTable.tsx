@@ -8,56 +8,64 @@ const features = [
   },
   {
     label: "주제 설정",
-    free: "직접 입력만",
-    pro: "자동 생성 + 직접 입력",
+    free: "직접 입력",
+    pro: "자동 + 직접 입력",
   },
   {
-    label: "AI 보완 옵션",
-    free: "제공 안함",
-    pro: `하루 ${PLAN_LIMITS.pro.aiEnhance}회 제한`,
+    label: "AI 보완",
+    free: "—",
+    pro: `하루 ${PLAN_LIMITS.pro.aiEnhance}회`,
   },
   {
-    label: "자동 생성 기간 설정",
-    free: "제공 안함",
-    pro: "제공",
-  },
-  {
-    label: "보관함 저장",
-    free: `${PLAN_LIMITS.free.archiveDays}일만 보관`,
+    label: "보관함",
+    free: `${PLAN_LIMITS.free.archiveDays}일`,
     pro: "무제한",
   },
   {
-    label: "해시태그 자동 추가",
-    free: "제공 안함",
-    pro: "제공",
+    label: "해시태그",
+    free: "—",
+    pro: "자동 추가",
   },
 ]
 
 export default function PlanTable() {
   return (
-    <section className="w-full">
-      <p className="text-sm font-medium text-gray-700 mb-3">플랜 비교</p>
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr>
-            <th className="text-left py-2 pr-3 text-gray-500 font-normal w-1/2">기능</th>
-            <th className="text-center py-2 px-2 text-gray-700 font-medium">무료</th>
-            <th className="text-center py-2 pl-2 text-orange-500 font-medium">
-              프로<br />
-              <span className="text-xs font-normal text-gray-500">월 5,000원</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {features.map((row, i) => (
-            <tr key={row.label} className={i % 2 === 0 ? "bg-gray-50" : ""}>
-              <td className="py-2 pr-3 text-gray-600">{row.label}</td>
-              <td className="py-2 px-2 text-center text-gray-500">{row.free}</td>
-              <td className="py-2 pl-2 text-center text-gray-800">{row.pro}</td>
-            </tr>
+    <div className="grid grid-cols-2 gap-3">
+      {/* Free */}
+      <div className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-gray-50 p-5">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-semibold text-gray-700">무료</span>
+          <span className="text-2xl font-bold text-gray-900">₩0</span>
+          <span className="text-xs text-gray-400">영원히 무료</span>
+        </div>
+        <div className="h-px bg-gray-200" />
+        <ul className="flex flex-col gap-2.5">
+          {features.map((f) => (
+            <li key={f.label} className="flex flex-col gap-0.5">
+              <span className="text-xs text-gray-400">{f.label}</span>
+              <span className="text-sm font-medium text-gray-700">{f.free}</span>
+            </li>
           ))}
-        </tbody>
-      </table>
-    </section>
+        </ul>
+      </div>
+
+      {/* Pro */}
+      <div className="flex flex-col gap-4 rounded-2xl border border-orange-100 bg-orange-50 p-5">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-semibold text-orange-500">프로</span>
+          <span className="text-2xl font-bold text-gray-900">₩5,000</span>
+          <span className="text-xs text-gray-400">월 구독</span>
+        </div>
+        <div className="h-px bg-orange-100" />
+        <ul className="flex flex-col gap-2.5">
+          {features.map((f) => (
+            <li key={f.label} className="flex flex-col gap-0.5">
+              <span className="text-xs text-orange-400">{f.label}</span>
+              <span className="text-sm font-medium text-gray-800">{f.pro}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   )
 }

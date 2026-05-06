@@ -29,3 +29,7 @@ env/
 # phase execution outputs
 phases/**/phase*-output.json
 phases/**/step*-output.json
+
+# Env
+.env.local
+.env*.local
